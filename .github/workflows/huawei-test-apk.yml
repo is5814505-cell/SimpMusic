@@ -29,12 +29,25 @@ jobs:
         run: |
           sed -i 's/^isFullBuild=.*/isFullBuild=false/' gradle.properties
 
+      - name: Patch COMMAND_GET_TIMELINE (Huawei media controllers)
+        run: |
+          FILE="core/media/media3/src/main/java/com/maxrave/media3/service/callback/SimpleMediaSessionCallback.kt"
+          if [ ! -f "$FILE" ]; then
+            echo "ERROR: $FILE not found"
+            find core -name '*MediaSession*' -type f || true
+            exit 1
+          fi
+          # Keep COMMAND_GET_TIMELINE available for system media controllers (Huawei/EMUI)
+          sed -i '/\.remove(COMMAND_GET_TIMELINE)/d' "$FILE"
+          echo "--- patched section ---"
+          grep -n -A5 -B5 'addAllCommands' "$FILE" || true
+
       - name: Build APK
         run: ./gradlew --no-daemon androidApp:assembleDebug
 
       - name: Upload APK
         uses: actions/upload-artifact@v5
         with:
-          name: simpmusic-debug-apk
+          name: simpmusic-huawei-timeline-fix-apk
           path: androidApp/build/outputs/apk/debug/*.apk
           if-no-files-found: error
